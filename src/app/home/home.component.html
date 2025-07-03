@@ -1,0 +1,210 @@
+<div class="calculator-container">
+  <h1 class="main-title">Mutual Fund Calculator</h1>
+  
+  <!-- Calculator Type Selection -->
+  <div class="calculator-type-section">
+    <div class="calculator-type-buttons">
+      <button 
+        *ngFor="let type of calculatorTypes" 
+        (click)="setCalculatorType(type.value)"
+        [class]="'calculator-type-btn ' + (selectedType === type.value ? 'active' : 'inactive')"
+      >
+        {{type.label}}
+      </button>
+    </div>
+  </div>
+
+  <div class="calculator-grid">
+    <!-- Input Form -->
+    <div class="input-form-card">
+      <h2 class="card-title">Investment Details</h2>
+      
+      <form [formGroup]="calculatorForm" (ngSubmit)="calculate()">
+        <!-- SIP Amount -->
+        <div class="form-group" *ngIf="selectedType === 'sip'">
+          <label class="form-label">Monthly SIP Amount (₹)</label>
+          <input 
+            type="number" 
+            formControlName="sipAmount"
+            class="form-input"
+            placeholder="Enter monthly SIP amount"
+          >
+        </div>
+
+        <!-- Lump Sum Amount -->
+        <div class="form-group" *ngIf="selectedType === 'lumpsum'">
+          <label class="form-label">Lump Sum Amount (₹)</label>
+          <input 
+            type="number" 
+            formControlName="lumpSumAmount"
+            class="form-input"
+            placeholder="Enter lump sum amount"
+          >
+        </div>
+
+        <!-- Investment Period -->
+        <div class="form-group">
+          <label class="form-label">Investment Period (Years)</label>
+          <input 
+            type="number" 
+            formControlName="years"
+            class="form-input"
+            placeholder="Enter investment period"
+          >
+        </div>
+
+        <!-- Expected Annual Return -->
+        <div class="form-group">
+          <label class="form-label">Expected Annual Return (%)</label>
+          <input 
+            type="number" 
+            step="0.1"
+            formControlName="annualReturn"
+            class="form-input"
+            placeholder="Enter expected annual return"
+          >
+        </div>
+
+        <!-- Step-up Rate -->
+        <div class="form-group" *ngIf="selectedType === 'sip'">
+          <label class="form-label">Annual Step-up Rate (%) - Optional</label>
+          <input 
+            type="number" 
+            step="0.1"
+            formControlName="stepUpRate"
+            class="form-input"
+            placeholder="Enter annual step-up rate"
+          >
+        </div>
+
+        <button 
+          type="submit" 
+          [disabled]="!calculatorForm.valid"
+          class="calculate-btn"
+          [class.disabled]="!calculatorForm.valid"
+        >
+          Calculate Returns
+        </button>
+      </form>
+    </div>
+
+    <!-- Results Display -->
+    <div class="results-card">
+      <h2 class="card-title">Investment Summary</h2>
+      
+      <div *ngIf="result; else noResult" class="results-content">
+        <div class="result-item investment">
+          <div class="result-row">
+            <span class="result-label">Total Investment:</span>
+            <span class="result-value">₹{{result.totalInvestment | number:'1.0-0'}}</span>
+          </div>
+        </div>
+        
+        <div class="result-item maturity">
+          <div class="result-row">
+            <span class="result-label">Maturity Amount:</span>
+            <span class="result-value maturity-amount">₹{{result.maturityAmount | number:'1.0-0'}}</span>
+          </div>
+        </div>
+        
+        <div class="result-item gains">
+          <div class="result-row">
+            <span class="result-label">Total Gains:</span>
+            <span class="result-value gains-amount">₹{{result.totalGains | number:'1.0-0'}}</span>
+          </div>
+        </div>
+
+        <!-- Investment Breakdown -->
+        <div class="breakdown-section">
+          <h3 class="breakdown-title">Investment Breakdown</h3>
+          <div class="breakdown-bars">
+            <div class="breakdown-bar">
+              <div 
+                class="bar-fill investment-bar"
+                [style.width.%]="getInvestmentPercentage()"
+              >
+                <span class="bar-text">{{getInvestmentPercentage() | number:'1.0-0'}}%</span>
+              </div>
+            </div>
+            <p class="bar-label">Investment: ₹{{result.totalInvestment | number:'1.0-0'}}</p>
+          </div>
+          <div class="breakdown-bars">
+            <div class="breakdown-bar">
+              <div 
+                class="bar-fill gains-bar"
+                [style.width.%]="getGainsPercentage()"
+              >
+                <span class="bar-text">{{getGainsPercentage() | number:'1.0-0'}}%</span>
+              </div>
+            </div>
+            <p class="bar-label">Gains: ₹{{result.totalGains | number:'1.0-0'}}</p>
+          </div>
+        </div>
+      </div>
+      
+      <ng-template #noResult>
+        <div class="no-result">
+          <div class="calculator-icon">📊</div>
+          <p>Enter your investment details and click "Calculate Returns" to see the projection.</p>
+        </div>
+      </ng-template>
+    </div>
+  </div>
+
+  <!-- Monthly Breakdown Table -->
+  <div *ngIf="result && selectedType === 'sip' && showMonthlyBreakdown" class="breakdown-table-card">
+    <div class="breakdown-header">
+      <h2 class="card-title">Monthly Breakdown</h2>
+      <button 
+        (click)="toggleMonthlyBreakdown()"
+        class="toggle-btn"
+      >
+        Hide Details
+      </button>
+    </div>
+    
+    <div class="table-container">
+      <table class="breakdown-table">
+        <thead>
+          <tr>
+            <th>Month</th>
+            <th>SIP Amount</th>
+            <th>Total Invested</th>
+            <th>Current Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of getMonthlyBreakdownSample(); let i = index" 
+              [class]="i % 2 === 0 ? 'even-row' : 'odd-row'">
+            <td>{{row.month}}</td>
+            <td>₹{{row.sipAmount | number:'1.0-0'}}</td>
+            <td>₹{{row.totalInvested | number:'1.0-0'}}</td>
+            <td>₹{{row.currentValue | number:'1.0-0'}}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Show Monthly Breakdown Button -->
+  <div *ngIf="result && selectedType === 'sip' && !showMonthlyBreakdown" class="show-breakdown-section">
+    <button 
+      (click)="toggleMonthlyBreakdown()"
+      class="show-breakdown-btn"
+    >
+      Show Monthly Breakdown
+    </button>
+  </div>
+
+  <!-- Important Notes -->
+  <div class="notes-card">
+    <h3 class="notes-title">Important Notes:</h3>
+    <ul class="notes-list">
+      <li>This calculator provides approximate values for illustration purposes only.</li>
+      <li>Actual returns may vary based on market conditions and fund performance.</li>
+      <li>Mutual fund investments are subject to market risks.</li>
+      <li>Consider inflation and taxes while planning your investments.</li>
+      <li>Past performance does not guarantee future results.</li>
+    </ul>
+  </div>
+</div>
